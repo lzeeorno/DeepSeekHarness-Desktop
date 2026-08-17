@@ -445,8 +445,8 @@ agent loop 的关键序列是 `turn/start -> step/start -> history -> llm stream
 
 | 目标 | 当前判断 | 原因 |
 | --- | --- | --- |
-| 原生桌面使用 | Linux x64 的 Electron 目录构建已 keyless 验收 | 主进程启动 built CLI、携带 runtime closure、等待 loopback 就绪并加载真实 Web Client；其他 host 仍需验证。 |
-| Windows/macOS/Ubuntu 安装包 | Linux x64 AppImage/deb 已在本机生成；macOS/Windows 尚未验证 | `electron-builder` maker 已接入，但三平台原生构建、签名/notarization 和安装升级测试仍是发布工作。 |
+| 原生桌面使用 | Linux x64 与 Intel macOS x64 的 Electron 目录构建已 keyless 验收；Apple Silicon 在原生 CI runner smoke 验收 | 主进程启动 built CLI、携带 runtime closure、等待 loopback 就绪并加载真实 Web Client；macOS 资产仍未签名/公证。 |
+| Windows/macOS/Ubuntu 安装包 | Linux x64 AppImage/deb 与 macOS Intel/Apple Silicon DMG/ZIP 已在原生 host 生成并检查；Windows 仍为 CI-only | `electron-builder` maker 已接入，macOS 包安装/首启与 native addon 有证据；签名/notarization、升级/卸载和完整三平台安装矩阵仍是发布工作。 |
 | Claude/GPT/DeepSeek API 切换 | profile/config 可支持，必须逐个真实 API 验收 | endpoint、模型目录、账户额度和 provider capability 变化很快。 |
 | API key UI | keyless Electron 首启已显示现有 provider/API key 配置页 | 需要用户手工输入真实 key，验证 key 不被回显或写进 session，并逐个验证 provider。 |
 | 云端会话接续 | 未完成 | 缺 event replication、identity、remote backend 和同步语义。 |
@@ -520,13 +520,13 @@ Provider 侧的配置、catalog、dynamic settings、discovery、SDK wire option
 
 重新生成的 Linux x64 AppImage 也在 `APPIMAGE_EXTRACT_AND_RUN=1`、Xvfb 和 DevTools Protocol 下启动，显示同一 keyless 首屏；这是 AppImage payload smoke，不是对系统级安装、桌面菜单、升级或卸载的证明。deb 仅完成 `dpkg-deb --info` 元数据检查。
 
-Linux 原生 runner 的桌面工作流还会在同一次构建输出的 `linux-unpacked` 目录上运行 [`smoke:dir`](../apps/desktop/scripts/smoke.mjs)：它通过 Playwright CDP 等待 loopback Web Client URL 和真实标题，检查首屏入口，选择 `Configure later` 关闭 keyless onboarding，再进入 Settings → Models 并确认 DeepSeek/API key 设置表面可见，最后在成功或失败后回收 Electron。这个 smoke 把打包应用的启动时序和本地 BYOK 设置路径纳入 CI，但仍不替代 AppImage/deb 安装、升级、卸载或真实 provider 请求验收。
+Linux 与 macOS 原生 runner 的桌面工作流还会在同一次构建输出的 `linux-unpacked` 或 macOS `.app` 目录上运行 [`smoke:dir`](../apps/desktop/scripts/smoke.mjs)：它通过 Playwright CDP 等待 loopback Web Client URL 和真实标题，检查首屏入口，选择 `Configure later` 关闭 keyless onboarding，再用鼠标打开 Settings、用键盘激活 Models，并确认 DeepSeek/API key 设置表面可见，最后在成功或失败后回收 Electron。这个 smoke 把打包应用的启动时序和本地 BYOK 设置路径纳入 Linux 与 macOS CI，但仍不替代 AppImage/DMG 安装、升级、卸载或真实 provider 请求验收。
 
-打包态由 [`stage-runtime.mjs`](../apps/desktop/scripts/stage-runtime.mjs) 执行 `pnpm deploy --prod --legacy`，补齐声明为 workspace peer 但未被 deploy 带出的包，并将指向工作区的外部链接实体化；[`package.mjs`](../apps/desktop/scripts/package.mjs) 在临时无依赖应用目录中调用 `electron-builder`，因此不会让 builder 修改根工作区的依赖状态。运行时放在 `resources/dsh-runtime`，子进程使用 `RUST_LOG=info` 和 `--expose-internals`，后者是 DSH HMR service 的现有启动要求。
+打包态由 [`stage-runtime.mjs`](../apps/desktop/scripts/stage-runtime.mjs) 执行 `pnpm deploy --prod --legacy`，补齐声明为 workspace peer 但未被 deploy 带出的包，并将指向工作区的外部链接实体化；重复暂存会把上一份生成 runtime 移到带时间戳的 ignored sibling。[`package.mjs`](../apps/desktop/scripts/package.mjs) 直接以桌面 manifest 作为 electron-builder 项目，并根据签名环境选择明确的 unsigned 或 hardened/notarized macOS 配置。运行时放在 `resources/dsh-runtime`，子进程使用 `RUST_LOG=info` 和 `--expose-internals`，后者是 DSH HMR service 的现有启动要求。
 
-当前已在 Linux x64 验证 `linux-unpacked` 目录、AppImage 和 deb 目标：目录构建可以启动真实 Web Client，keyless 首屏可进入 New Session、Workspaces、Settings 和 provider/API key 配置页；AppImage 与 deb 的文件格式和 deb 元数据也已检查；[`check-native.mjs`](../apps/desktop/scripts/check-native.mjs) 成功从暂存 runtime 加载并启动/关闭 `node-pty`。这个验证没有使用真实 API key，也没有执行 native addon 的完整平台矩阵；macOS/Windows 的 addon 证据只能在各自原生 runner 成功后成立。
+当前已在 Linux x64 验证 `linux-unpacked` 目录、AppImage 和 deb 目标，并在 Intel macOS 验证 `.app`、DMG 和 ZIP 目标：目录构建可以启动真实 Web Client，keyless 首屏可进入 New Session、Workspaces、Settings 和 provider/API key 配置页；macOS DMG 已挂载并将应用安装到用户 Applications 目录后再次 smoke；[`check-native.mjs`](../apps/desktop/scripts/check-native.mjs) 成功从各自暂存 runtime 加载并启动/关闭 `node-pty`。这些验证没有使用真实 API key；Apple Silicon 由原生 CI runner 提供相同的 UI/native-addon smoke，签名、公证、升级、卸载和真实 provider 仍未验收。
 
-macOS/Windows 构建脚本已按原生 host 目标接入，但尚未在对应系统运行；签名证书、Apple notarization、Windows code signing、安装升级卸载和公开分发仍未完成。因此不能把当前产物称为已签名的三平台发行版。
+macOS 构建脚本已在 Intel 本机和 Apple Silicon 原生 runner 运行；当前 DMG/ZIP 是架构专用且 unsigned，签名证书、Apple notarization、Windows code signing、完整安装升级卸载和真实 provider 请求仍未完成。因此只能把当前产物称为 unsigned macOS preview，不能称为已签名的三平台发行版。
 
 ### 5.3 信息架构
 
@@ -667,16 +667,16 @@ V1 只使用边界清晰的 subagent delegation：子 Agent 获得最少上下�
 2. 桌面壳：已验证 Electron 能启动 built DSH CLI，显示真实 Web Client，并在关闭时回收 child runtime。
 3. Context and provider workbench：把现有模型设置、credential reference、capacity 和 compaction 暴露为可解释 UI。
 4. Build and Research surfaces：在同一 event stream 上组织 diff/test/terminal 与 evidence/experiment/citation。
-5. Runtime closure and installers：Linux x64 的 `resources/dsh-runtime`、AppImage 和 deb 已验证；在 macOS/Windows 原生 host 上重复同一流程并验证 native addon 后，才可宣称三平台 artifacts。
+5. Runtime closure and installers：Linux x64 的 `resources/dsh-runtime`、AppImage 和 deb，以及 Intel macOS 的 `resources/dsh-runtime`、DMG 和 ZIP 已验证；Apple Silicon native runner 完成 UI/native-addon smoke，但签名/公证和完整安装矩阵仍待完成。
 6. Release verification：完成三平台安装/升级/卸载、真实 API key 手工验收和签名流程。
 
 ### 7.2 原生 runner 与开源交付入口
 
-`.github/workflows/desktop.yml` 是三平台构建的可复现入口：Ubuntu 24.04 运行 `pack:linux` 并在 `xvfb-run` 下执行 `smoke:dir`，随后检查 AppImage/deb；macOS 14 runner 运行 `pack:mac` 并检查 dmg/zip；Windows 2025 runner 运行 `pack:win` 并检查 NSIS exe/zip，且展开 zip 验证其可读。每个原生 runner 还运行 [`check-native.mjs`](../apps/desktop/scripts/check-native.mjs)，从暂存 runtime 加载 `node-pty` 并创建/关闭一个最小 PTY。打包入口会在 electron-builder 启动前拒绝与当前 `process.platform` 不匹配的目标，因此 host 编译的 native addon 不会被误放进异平台安装包。工作流在 pull request、`desktop-v*` tag 和手动 dispatch 时运行，使用锁定的 `pnpm-lock.yaml`，上传 AppImage/deb、dmg/zip 或 exe/zip 作为 7 天保留的 unsigned artifacts；具体 CPU 架构随 runner 和构建目标确定，不能从该 workflow 推出 Universal macOS binary。安装、BYOK 和本地打包命令由 [`apps/desktop/README.md`](../apps/desktop/README.md) 作为用户入口维护。
+`.github/workflows/desktop.yml` 是三平台构建的可复现入口：Ubuntu 24.04 运行 `pack:linux` 并在 `xvfb-run` 下执行 `smoke:dir`，随后检查 AppImage/deb；macOS Intel runner 与 macOS 15 Apple Silicon runner 运行 `pack:mac`、打包 UI smoke 并检查 dmg/zip；Windows 2025 runner 运行 `pack:win` 并检查 NSIS exe/zip，且展开 zip 验证其可读。每个原生 runner 还运行 [`check-native.mjs`](../apps/desktop/scripts/check-native.mjs)，从暂存 runtime 加载 `node-pty` 并创建/关闭一个最小 PTY。打包入口会在 electron-builder 启动前拒绝与当前 `process.platform` 不匹配的目标，因此 host 编译的 native addon 不会被误放进异平台安装包。工作流在 pull request、`desktop-v*` tag 和手动 dispatch 时运行，使用锁定的 `pnpm-lock.yaml`，上传 AppImage/deb、架构专用 dmg/zip 或 exe/zip 作为 7 天保留的 unsigned artifacts；desktop tag 的发布任务会把 Linux 与 macOS 资产一起放入 prerelease。具体 CPU 架构随 runner 和构建目标确定，不能从该 workflow 推出 Universal macOS binary。安装、BYOK 和本地打包命令由 [`apps/desktop/README.md`](../apps/desktop/README.md) 作为用户入口维护。
 
 工作流设置 `CSC_IDENTITY_AUTO_DISCOVERY=false` 和 `WIN_CSC_IDENTITY_AUTO_DISCOVERY=false`，所以构建成功只证明 runtime closure、native addon 编译和 installer payload 可以生成；macOS/Windows 的 payload 检查只证明文件非空、zip 可读或镜像可检查，不证明签名、Apple notarization、Windows SmartScreen 信任、安装升级卸载或真实模型接入。发布前必须在拥有相应证书的 release job 中显式注入签名材料，并把安装/升级/卸载和 API key 手工验收结果作为 release evidence；没有这些证据时只能把工作流产物称为 unsigned build artifact。
 
-该 workflow 只上传构建产物，不自动向 GitHub 推送代码或创建 release。开源发布顺序应是：维护者审阅源码与 `references/` 的许可证，合并变更，使用 `desktop-v*` tag 触发三平台构建，下载并安装验收 unsigned artifacts，完成签名/公证后再由维护者创建 GitHub Release。这样“仓库已开源”和“可分发安装包已签名”不会被混为一谈。
+该 workflow 在 `desktop-v*` tag 上会由 GitHub Actions 创建包含 Linux 与 macOS unsigned assets 的 prerelease，但不会替维护者完成签名/公证或安装升级卸载验收。开源发布顺序应是：维护者审阅源码与 `references/` 的许可证，合并变更，使用 tag 触发构建，下载并安装验收 unsigned artifacts，拥有相应凭据后再签名/公证并更新 release evidence。这样“仓库已开源”和“可分发安装包已签名”不会被混为一谈。
 
 ### 7.3 测试矩阵
 

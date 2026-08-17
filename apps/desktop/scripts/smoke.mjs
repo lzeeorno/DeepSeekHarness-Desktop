@@ -6,8 +6,8 @@ import { join, resolve } from 'node:path'
 
 const desktopRoot = resolve(import.meta.dirname, '..')
 const workspaceRoot = resolve(desktopRoot, '../..')
-const unpackedRoot = resolve(process.env.DSH_DESKTOP_UNPACKED ?? join(workspaceRoot, 'dist/desktop/linux-unpacked'))
-const binary = resolve(process.env.DSH_DESKTOP_BINARY ?? join(unpackedRoot, 'dsh-desktop'))
+const unpackedRoot = resolve(process.env.DSH_DESKTOP_UNPACKED ?? defaultUnpackedRoot())
+const binary = resolve(process.env.DSH_DESKTOP_BINARY ?? defaultBinary(unpackedRoot))
 const cdpPort = Number.parseInt(process.env.DSH_DESKTOP_CDP_PORT ?? '9229', 10)
 
 if (!existsSync(binary)) throw new Error(`desktop smoke: packaged executable is missing: ${binary}`)
@@ -25,8 +25,7 @@ for (const name of ['ALL_PROXY', 'HTTP_PROXY', 'HTTPS_PROXY', 'all_proxy', 'http
 const child = spawn(binary, [
   `--remote-debugging-port=${cdpPort}`,
   '--disable-gpu',
-  '--disable-dev-shm-usage',
-  '--no-sandbox',
+  ...(process.platform === 'linux' ? ['--disable-dev-shm-usage', '--no-sandbox'] : []),
 ], {
   cwd: workspaceRoot,
   // AppImage may detach the real Electron process from its launcher. A POSIX
@@ -50,20 +49,23 @@ try {
   await page.waitForURL(/^http:\/\/127\.0\.0\.1:/, { timeout: 30_000 })
   await page.waitForLoadState('domcontentloaded')
   if (await page.title() !== 'DeepSeek Harness') throw new Error(`unexpected page title: ${await page.title()}`)
-  for (const label of ['New Session', 'Workspaces', 'Settings']) {
-    await page.getByText(label, { exact: true }).first().waitFor({ state: 'visible', timeout: 15_000 })
+  for (const labels of [['New Session', '新会话'], ['Workspaces', '工作区'], ['Settings', '设置']]) {
+    await localizedText(page, labels).waitFor({ state: 'visible', timeout: 15_000 })
   }
-  await dismissOnboardingAction(page, 'Continue')
-  await dismissOnboardingAction(page, 'Configure later')
-  await page.getByRole('group', { name: 'Workbench focus', exact: true }).first().waitFor({ state: 'visible', timeout: 15_000 })
-  await page.getByRole('button', { name: 'Settings', exact: true }).click()
-  const settings = page.getByRole('dialog', { name: 'Settings' })
+  await dismissOnboardingAction(page, ['Continue', '继续'])
+  await dismissOnboardingAction(page, ['Configure later', '稍后配置'])
+  await page.getByRole('group', { name: localizedPattern(['Workbench focus', '工作台焦点']) }).first().waitFor({ state: 'visible', timeout: 15_000 })
+  const settingsButton = localizedButton(page, ['Settings', '设置'])
+  await settingsButton.click()
+  const settings = page.getByRole('dialog').last()
   await settings.waitFor({ state: 'visible', timeout: 15_000 })
-  await settings.getByRole('button', { name: 'Models', exact: true }).click()
-  await settings.getByText('DeepSeek', { exact: true }).first().waitFor({ state: 'visible', timeout: 15_000 })
-  const apiKey = settings.getByText('API key', { exact: true }).first()
+  const modelsButton = localizedButton(settings, ['Models', '模型'])
+  await modelsButton.focus()
+  await page.keyboard.press('Enter')
+  await localizedText(settings, ['DeepSeek']).waitFor({ state: 'visible', timeout: 15_000 })
+  const apiKey = localizedText(settings, ['API key', 'API 密钥'])
   if (!await apiKey.isVisible()) {
-    await settings.getByRole('button', { name: /^Edit DeepSeek/ }).click()
+    await settings.getByRole('button', { name: /^(?:Edit|编辑).*DeepSeek/ }).click()
   }
   await apiKey.waitFor({ state: 'visible', timeout: 15_000 })
   console.log(`desktop smoke: packaged UI passed (${page.url()})`)
@@ -76,8 +78,23 @@ try {
   if (diagnostic !== '') console.log(`desktop smoke: runtime tail\n${diagnostic}`)
 }
 
-async function dismissOnboardingAction(page, name) {
-  const action = page.getByRole('button', { name, exact: true })
+function defaultUnpackedRoot() {
+  if (process.platform !== 'darwin') return join(workspaceRoot, 'dist/desktop/linux-unpacked')
+  const candidates = ['mac', 'mac-arm64', 'mac-x64']
+  for (const candidate of candidates) {
+    const root = join(workspaceRoot, 'dist/desktop', candidate)
+    if (existsSync(join(root, 'DSH Desktop.app'))) return root
+  }
+  return join(workspaceRoot, 'dist/desktop/mac')
+}
+
+function defaultBinary(root) {
+  if (process.platform === 'darwin') return join(root, 'DSH Desktop.app/Contents/MacOS/DSH Desktop')
+  return join(root, 'dsh-desktop')
+}
+
+async function dismissOnboardingAction(page, labels) {
+  const action = localizedButton(page, labels)
   try {
     await action.waitFor({ state: 'visible', timeout: 5_000 })
   } catch (error) {
@@ -86,6 +103,22 @@ async function dismissOnboardingAction(page, name) {
   }
   await action.click()
   await action.waitFor({ state: 'detached', timeout: 15_000 })
+}
+
+function localizedText(scope, labels) {
+  return scope.getByText(localizedPattern(labels)).first()
+}
+
+function localizedButton(scope, labels) {
+  return scope.getByRole('button', { name: localizedPattern(labels) }).first()
+}
+
+function localizedPattern(labels) {
+  return new RegExp(`^(?:${labels.map(label => escapeRegExp(label)).join('|')})$`)
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
 async function waitForCdp(url, timeoutMs = 30_000) {

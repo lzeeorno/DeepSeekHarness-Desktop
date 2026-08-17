@@ -42,13 +42,14 @@ The Electron shell reuses the Web Client and starts a local DSH runtime. From a 
 pnpm --filter @deepseek-ai/dsh-desktop dev
 ```
 
-On Linux x64, a directory build and unsigned AppImage/deb artifacts can be created with:
+On a native host matching the target, a directory build and installer artifacts can be created with:
 
 ```sh
 pnpm --filter @deepseek-ai/dsh-desktop pack:linux
+pnpm --filter @deepseek-ai/dsh-desktop pack:mac
 ```
 
-Artifacts are written to `dist/desktop/`. Linux x64 is the first public prerelease target. macOS: **Coming Soon**. Windows: **Coming Soon**. Native CI validation does not mean that an unsigned artifact is a distributable installer; use the [Agent systems whitepaper](references/AGENT_SYSTEMS_WHITEPAPER.md) for the acceptance sequence and release limits.
+Artifacts are written to `dist/desktop/`. The current prerelease includes Linux x64 and architecture-specific macOS DMG/ZIP packages; choose the DMG or ZIP matching the Mac CPU. The macOS packages are unsigned and not notarized, so the first launch may require Control-click > Open in Finder. Windows: **Coming Soon**. Native CI validation does not prove signing, notarization, upgrade, uninstall, or real provider access; use the [Agent systems whitepaper](references/AGENT_SYSTEMS_WHITEPAPER.md) for the acceptance sequence and release limits.
 
 ## Community and support
 

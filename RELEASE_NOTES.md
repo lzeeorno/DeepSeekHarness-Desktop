@@ -1,11 +1,13 @@
-# DSH Desktop 0.1.0-rc.5
+# DSH Desktop 0.1.0-rc.5 macOS preview
 
-This community prerelease introduces the Electron desktop shell, the Build/Research workbench, the context ledger, provider profile settings, and Linux x64 packaging built on DeepSeek Harness. It is not an official DeepSeek release.
+This community prerelease adds native macOS packaging to the Electron desktop shell, alongside the Linux x64 packages already built on DeepSeek Harness. It is not an official DeepSeek release.
 
 ## Downloads
 
 - Linux x64 AppImage
 - Linux amd64 Debian package
+- macOS Intel x64 DMG and ZIP
+- macOS Apple Silicon arm64 DMG and ZIP
 - `SHA256SUMS`
 - CycloneDX SBOM
 
@@ -13,9 +15,10 @@ The GitHub build records separate provenance and SBOM attestations for both Linu
 
 ## Known Limits
 
-- macOS: **Coming Soon**
+- macOS assets are unsigned and not notarized. macOS may require Control-click > Open on first launch.
+- The macOS packages are architecture-specific; no Universal binary is published.
 - Windows: **Coming Soon**
-- Linux is a prerelease target and has not completed the full cross-platform installation matrix.
+- The full upgrade and uninstall matrix is still pending.
 - Real model use requires a user-supplied provider API key. No API key is included in the repository or release assets.
 - OAuth subscription login, cloud session handoff, GUI computer use, unattended scheduling, and complex agent teams remain future extension work.
 

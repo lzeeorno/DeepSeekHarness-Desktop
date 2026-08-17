@@ -42,13 +42,14 @@ Electron 桌面壳复用 Web Client，并启动本地 DSH runtime。从源码 ch
 pnpm --filter @deepseek-ai/dsh-desktop dev
 ```
 
-在 Linux x64 上，可以用以下命令生成目录构建以及未签名的 AppImage/deb 产物：
+在与目标匹配的原生宿主上，可以用以下命令生成目录构建和安装包产物：
 
 ```sh
 pnpm --filter @deepseek-ai/dsh-desktop pack:linux
+pnpm --filter @deepseek-ai/dsh-desktop pack:mac
 ```
 
-产物写入 `dist/desktop/`。首个公开预发布目标是 Linux x64。macOS：**Coming Soon**。Windows：**Coming Soon**。原生 CI 验证不等于未签名产物可以作为可分发安装包；验收顺序和发布限制见 [Agent 系统白皮书](references/AGENT_SYSTEMS_WHITEPAPER.md)。
+产物写入 `dist/desktop/`。当前预发布包含 Linux x64 以及按架构区分的 macOS DMG/ZIP，请选择与 Mac CPU 匹配的 DMG 或 ZIP。macOS 包未签名且未 notarize，首次在 Finder 中启动时可能需要按住 Control 点击并选择 Open。Windows：**Coming Soon**。原生 CI 验证不等于已完成签名、公证、升级、卸载或真实 provider 接入；验收顺序和发布限制见 [Agent 系统白皮书](references/AGENT_SYSTEMS_WHITEPAPER.md)。
 
 ## 社区与支持
 

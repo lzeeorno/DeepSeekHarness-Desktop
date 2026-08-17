@@ -7,7 +7,6 @@ import {
   readFileSync,
   realpathSync,
   renameSync,
-  rmSync,
   statSync,
   unlinkSync,
 } from 'node:fs'
@@ -23,7 +22,11 @@ if (pnpmEntrypoint === undefined || pnpmEntrypoint === '') {
   throw new Error('desktop: npm_execpath is unavailable; invoke staging through the pnpm package script')
 }
 
-if (existsSync(runtimeRoot)) rmSync(runtimeRoot, { recursive: true, force: true })
+if (existsSync(runtimeRoot)) {
+  const previousRuntimeRoot = `${runtimeRoot}.previous-${String(Date.now())}-${String(process.pid)}`
+  renameSync(runtimeRoot, previousRuntimeRoot)
+  console.log(`desktop: moved previous staged runtime to ${previousRuntimeRoot}`)
+}
 mkdirSync(dirname(runtimeRoot), { recursive: true })
 
 // deploy --prod records a production-only workspace state. Restore the full

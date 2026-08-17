@@ -38,10 +38,17 @@ jobs:
               dist/desktop/*.deb
               dist/desktop/SHA256SUMS
               dist/desktop/*.cdx.json
-          - name: macOS
-            runner: macos-14
+          - name: macOS Intel
+            runner: macos-15-intel
             target: mac
-            artifact: dsh-desktop-macos
+            artifact: dsh-desktop-macos-x64
+            path: |
+              dist/desktop/*.dmg
+              dist/desktop/*.zip
+          - name: macOS Apple Silicon
+            runner: macos-15
+            target: mac
+            artifact: dsh-desktop-macos-arm64
             path: |
               dist/desktop/*.dmg
               dist/desktop/*.zip
@@ -84,6 +91,10 @@ jobs:
       - name: Smoke packaged Linux UI
         if: matrix.target == 'linux'
         run: xvfb-run -a pnpm --filter @deepseek-ai/dsh-desktop smoke:dir
+
+      - name: Smoke packaged macOS UI
+        if: matrix.target == 'mac'
+        run: pnpm --filter @deepseek-ai/dsh-desktop smoke:dir
 
       - name: Inspect Linux payloads
         if: matrix.target == 'linux'
@@ -150,8 +161,8 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  release-linux:
-    name: Publish Linux prerelease
+  release-desktop:
+    name: Publish desktop prerelease
     if: startsWith(github.ref, 'refs/tags/desktop-v')
     needs: package
     runs-on: ubuntu-24.04
@@ -168,7 +179,24 @@ jobs:
           name: dsh-desktop-ubuntu-x64
           path: dist/desktop
 
-      - name: Create Linux prerelease
+      - name: Download macOS Intel artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dsh-desktop-macos-x64
+          path: dist/desktop
+
+      - name: Download macOS Apple Silicon artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dsh-desktop-macos-arm64
+          path: dist/desktop
+
+      - name: Generate release checksums
+        shell: bash
+        working-directory: dist/desktop
+        run: sha256sum *.AppImage *.deb *.dmg *.zip > SHA256SUMS
+
+      - name: Create desktop prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -182,4 +210,6 @@ jobs:
             dist/desktop/*.AppImage \
             dist/desktop/*.deb \
             dist/desktop/SHA256SUMS \
-            dist/desktop/*.cdx.json
+            dist/desktop/*.cdx.json \
+            dist/desktop/*.dmg \
+            dist/desktop/*.zip

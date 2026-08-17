@@ -3,7 +3,8 @@ CLAUDE.local.md
 !.env.example
 !.env.sample
 node_modules/
-apps/desktop/.runtime/
+references/deepseek-harness/
+apps/desktop/.runtime*/
 dist/desktop/
 .playwright-cli/
 lib/

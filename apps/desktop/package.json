@@ -1,7 +1,13 @@
 {
   "name": "@deepseek-ai/dsh-desktop",
+  "productName": "DSH Desktop",
   "description": "Community desktop workbench built on DeepSeek Harness",
   "version": "0.1.0-rc.5",
+  "homepage": "https://github.com/lzeeorno/DeepSeekHarness-Desktop",
+  "author": {
+    "name": "lzeeorno",
+    "email": "43123195+lzeeorno@users.noreply.github.com"
+  },
   "private": true,
   "type": "module",
   "main": "src/main.mjs",

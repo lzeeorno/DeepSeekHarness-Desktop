@@ -15,7 +15,7 @@ sudo apt install ./dist/desktop/dsh-0.1.0-rc.5-linux-amd64.deb
 
 Set `APPIMAGE_EXTRACT_AND_RUN=1` before the AppImage command when the host lacks FUSE support.
 
-macOS: **Coming Soon**. Windows: **Coming Soon**. Native CI validation exists, but neither platform is part of the first public download. Do not treat CI-only unsigned artifacts as distributable installers.
+macOS Intel and Apple Silicon preview packages are available from the [desktop releases](https://github.com/lzeeorno/DeepSeekHarness-Desktop/releases). Download the DMG or ZIP matching the Mac CPU, open the DMG, and drag `DSH Desktop.app` to Applications. The current packages are unsigned and not notarized; on first launch, Control-click the app and choose Open, then confirm the macOS warning. A universal binary is not published. Windows: **Coming Soon**.
 
 ## First Run And BYOK
 
@@ -35,13 +35,15 @@ pnpm --filter @deepseek-ai/dsh-desktop pack:mac
 pnpm --filter @deepseek-ai/dsh-desktop pack:win
 ```
 
-`pack:linux`, `pack:mac`, and `pack:win` reject a non-matching host. Each command stages a built DSH runtime before electron-builder packages it. On Linux, verify the packaged directory and native terminal addon with:
+`pack:linux`, `pack:mac`, and `pack:win` reject a non-matching host. Each command stages a built DSH runtime before electron-builder packages it. Verify the platform's packaged directory and native terminal addon with:
 
 ```sh
 DSH_DESKTOP_CDP_PORT=9331 pnpm --filter @deepseek-ai/dsh-desktop smoke:dir
 pnpm --filter @deepseek-ai/dsh-desktop check:native
 ```
 
+The smoke command locates the platform's unpacked application, checks the keyless first-run controls, exercises a mouse click and keyboard activation in Settings, and then shuts the application down.
+
 ## Release Boundary
 
-The first public release is a Linux x64 prerelease. The build outputs and CI artifacts are unsigned until the release signing process completes. A distributable cross-platform release still requires native installation, upgrade, and uninstall checks; real BYOK requests for each provider; macOS signing and notarization; and Windows code signing. The current release evidence and the complete acceptance sequence are in the [Agent Systems whitepaper](../../references/AGENT_SYSTEMS_WHITEPAPER.md#7-实施与验收路线).
+The current prerelease includes Linux x64 and architecture-specific macOS DMG/ZIP assets. The macOS Intel package has been installed and smoke-tested on the maintainer's Mac; the Apple Silicon package is built and smoke-tested on a native CI runner. All published packages are unsigned until the release signing process completes, so Gatekeeper may require the first-launch override above. A fully distributable cross-platform release still requires signed/notarized macOS assets, native upgrade and uninstall checks, real BYOK requests for each provider, and Windows code signing. The current release evidence and complete acceptance sequence are in the [Agent Systems whitepaper](../../references/AGENT_SYSTEMS_WHITEPAPER.md#7-实施与验收路线).

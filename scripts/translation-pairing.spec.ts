@@ -24,6 +24,7 @@ import {
   requiresSourceLanguageSwitcher,
   translationStructureDiff,
   translationStructureSignature,
+  TRANSLATION_SCOPE_GLOB_EXCLUDES,
 } from './translation-pairing.ts'
 
 function signature(markdown: string) {
@@ -196,6 +197,10 @@ describe('translation pairing records', () => {
 })
 
 describe('translation scope discovery', () => {
+  it('does not traverse external research checkouts under references', () => {
+    expect(TRANSLATION_SCOPE_GLOB_EXCLUDES).toContain('references/**')
+  })
+
   it.each([
     'README.md',
     'CONTRIBUTING.md',
