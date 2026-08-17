@@ -61,8 +61,11 @@ try {
   await settings.waitFor({ state: 'visible', timeout: 15_000 })
   await settings.getByRole('button', { name: 'Models', exact: true }).click()
   await settings.getByText('DeepSeek', { exact: true }).first().waitFor({ state: 'visible', timeout: 15_000 })
-  await settings.getByRole('button', { name: /^Edit DeepSeek/ }).click()
-  await settings.getByText('API key', { exact: true }).first().waitFor({ state: 'visible', timeout: 15_000 })
+  const apiKey = settings.getByText('API key', { exact: true }).first()
+  if (!await apiKey.isVisible()) {
+    await settings.getByRole('button', { name: /^Edit DeepSeek/ }).click()
+  }
+  await apiKey.waitFor({ state: 'visible', timeout: 15_000 })
   console.log(`desktop smoke: packaged UI passed (${page.url()})`)
 } finally {
   try {
