@@ -53,11 +53,8 @@ try {
   for (const label of ['New Session', 'Workspaces', 'Settings']) {
     await page.getByText(label, { exact: true }).first().waitFor({ state: 'visible', timeout: 15_000 })
   }
-  const configureLater = page.getByRole('button', { name: 'Configure later', exact: true })
-  if (await configureLater.isVisible()) {
-    await configureLater.click()
-    await configureLater.waitFor({ state: 'detached', timeout: 15_000 })
-  }
+  await dismissOnboardingAction(page, 'Continue')
+  await dismissOnboardingAction(page, 'Configure later')
   await page.getByRole('group', { name: 'Workbench focus', exact: true }).first().waitFor({ state: 'visible', timeout: 15_000 })
   await page.getByRole('button', { name: 'Settings', exact: true }).click()
   const settings = page.getByRole('dialog', { name: 'Settings' })
@@ -74,6 +71,18 @@ try {
     await stopChild(child)
   }
   if (diagnostic !== '') console.log(`desktop smoke: runtime tail\n${diagnostic}`)
+}
+
+async function dismissOnboardingAction(page, name) {
+  const action = page.getByRole('button', { name, exact: true })
+  try {
+    await action.waitFor({ state: 'visible', timeout: 5_000 })
+  } catch (error) {
+    if (error?.name === 'TimeoutError') return
+    throw error
+  }
+  await action.click()
+  await action.waitFor({ state: 'detached', timeout: 15_000 })
 }
 
 async function waitForCdp(url, timeoutMs = 30_000) {
