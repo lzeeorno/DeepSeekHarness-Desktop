@@ -1,0 +1,184 @@
+name: Desktop artifacts
+
+on:
+  pull_request:
+  push:
+    tags:
+      - 'desktop-v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '24'
+  DSH_TELEMETRY_DISABLED: '1'
+  CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+  WIN_CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+jobs:
+  package:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Ubuntu x64
+            runner: ubuntu-24.04
+            target: linux
+            artifact: dsh-desktop-ubuntu-x64
+            path: |
+              dist/desktop/*.AppImage
+              dist/desktop/*.deb
+              dist/desktop/SHA256SUMS
+              dist/desktop/*.cdx.json
+          - name: macOS
+            runner: macos-14
+            target: mac
+            artifact: dsh-desktop-macos
+            path: |
+              dist/desktop/*.dmg
+              dist/desktop/*.zip
+          - name: Windows x64
+            runner: windows-2025
+            target: win
+            artifact: dsh-desktop-windows-x64
+            path: |
+              dist/desktop/*.exe
+              dist/desktop/*.zip
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v4
+        with:
+          dest: ${{ runner.temp }}/setup-pnpm
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --prod=false --config.confirmModulesPurge=false
+
+      - name: Verify desktop runtime
+        run: |
+          pnpm --filter @deepseek-ai/dsh-desktop test
+          pnpm exec tsc -p apps/desktop/tsconfig.json --noEmit
+
+      - name: Package desktop target
+        run: pnpm --filter @deepseek-ai/dsh-desktop pack:${{ matrix.target }}
+
+      - name: Check native addon
+        run: pnpm --filter @deepseek-ai/dsh-desktop check:native
+
+      - name: Smoke packaged Linux UI
+        if: matrix.target == 'linux'
+        run: xvfb-run -a pnpm --filter @deepseek-ai/dsh-desktop smoke:dir
+
+      - name: Inspect Linux payloads
+        if: matrix.target == 'linux'
+        run: |
+          test -s dist/desktop/*.AppImage
+          test -s dist/desktop/*.deb
+          file dist/desktop/*.AppImage dist/desktop/*.deb
+          dpkg-deb --info dist/desktop/*.deb
+
+      - name: Generate Linux checksums
+        if: matrix.target == 'linux'
+        shell: bash
+        run: sha256sum dist/desktop/*.AppImage dist/desktop/*.deb > dist/desktop/SHA256SUMS
+
+      - name: Generate Linux SBOM
+        if: matrix.target == 'linux'
+        uses: anchore/sbom-action@v0
+        with:
+          path: dist/desktop/linux-unpacked
+          format: cyclonedx-json
+          output-file: dist/desktop/dsh-linux.cdx.json
+
+      - name: Attest Linux provenance
+        if: matrix.target == 'linux' && startsWith(github.ref, 'refs/tags/desktop-v')
+        uses: actions/attest@v4
+        with:
+          subject-path: |
+            dist/desktop/*.AppImage
+            dist/desktop/*.deb
+
+      - name: Attest Linux SBOM
+        if: matrix.target == 'linux' && startsWith(github.ref, 'refs/tags/desktop-v')
+        uses: actions/attest@v4
+        with:
+          subject-path: |
+            dist/desktop/*.AppImage
+            dist/desktop/*.deb
+          sbom-path: dist/desktop/dsh-linux.cdx.json
+
+      - name: Inspect macOS payloads
+        if: matrix.target == 'mac'
+        run: |
+          test -s dist/desktop/*.dmg
+          test -s dist/desktop/*.zip
+          file dist/desktop/*.dmg dist/desktop/*.zip
+          unzip -t dist/desktop/*.zip
+
+      - name: Inspect Windows payloads
+        if: matrix.target == 'win'
+        shell: pwsh
+        run: |
+          $exe = @(Get-ChildItem dist/desktop -Filter '*.exe' -File)
+          $zip = @(Get-ChildItem dist/desktop -Filter '*.zip' -File)
+          if ($exe.Count -ne 1 -or $exe[0].Length -le 0) { throw 'expected one non-empty Windows executable' }
+          if ($zip.Count -ne 1 -or $zip[0].Length -le 0) { throw 'expected one non-empty Windows zip' }
+          Expand-Archive -LiteralPath $zip[0].FullName -DestinationPath (Join-Path $env:RUNNER_TEMP 'dsh-zip-check') -Force
+
+      - name: Upload CI-only desktop artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.path }}
+          if-no-files-found: error
+          retention-days: 7
+
+  release-linux:
+    name: Publish Linux prerelease
+    if: startsWith(github.ref, 'refs/tags/desktop-v')
+    needs: package
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dsh-desktop-ubuntu-x64
+          path: dist/desktop
+
+      - name: Create Linux prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "DSH Desktop $GITHUB_REF_NAME" \
+            --prerelease \
+            --notes-file RELEASE_NOTES.md \
+            dist/desktop/*.AppImage \
+            dist/desktop/*.deb \
+            dist/desktop/SHA256SUMS \
+            dist/desktop/*.cdx.json

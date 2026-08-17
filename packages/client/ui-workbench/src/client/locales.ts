@@ -1,0 +1,66 @@
+/** `workbench` namespace dictionaries for the local Build/Research lens. */
+
+/** Simplified Chinese dictionary (the key-set source of truth). */
+export const zh = {
+  'title': '工作台焦点',
+  'description': '只改变本地界面焦点，不改变模型、工具、权限或提示词。',
+  'build': '代码',
+  'research': '科研',
+  'build.aria': '切换到代码工作台',
+  'research.aria': '切换到科研工作台',
+  'badge.build': '代码',
+  'badge.research': '科研',
+  'badge.build.title': '当前为代码工作台，点击切换到科研工作台并打开证据账本',
+  'badge.research.title': '当前为科研工作台，点击切换到代码工作台并打开对话',
+  'view.research': '科研证据',
+  'evidence.title': '证据与产物',
+  'evidence.description': '由当前会话已加载的事件直接投影。',
+  'evidence.readOnly': '只读事件账本',
+  'evidence.loadOlder': '加载更早事件',
+  'evidence.loadingOlder': '正在加载更早事件…',
+  'evidence.turns': '回合',
+  'evidence.actions': '工具动作',
+  'evidence.artifacts': '产物',
+  'evidence.compactions': '压缩',
+  'evidence.models': '已记录模型',
+  'evidence.artifacts.empty': '当前已加载的事件中没有文件产物。',
+  'evidence.actions.empty': '当前已加载的事件中没有工具动作。',
+  'evidence.models.empty': '当前已加载的事件中没有模型请求。',
+  'evidence.event': '事件 {seq}',
+  'evidence.completed': '完成',
+  'evidence.failed': '失败',
+} satisfies Record<string, string>
+
+/** Workbench dictionary key union. */
+export type WorkbenchKey = keyof typeof zh
+
+/** English dictionary, checked complete against the Chinese key set. */
+export const en = {
+  'title': 'Workbench focus',
+  'description': 'Changes the local UI focus only, never the model, tools, permissions, or prompt.',
+  'build': 'Build',
+  'research': 'Research',
+  'build.aria': 'Switch to the Build workbench',
+  'research.aria': 'Switch to the Research workbench',
+  'badge.build': 'Build',
+  'badge.research': 'Research',
+  'badge.build.title': 'Build workbench is active. Switch to Research and open the evidence ledger.',
+  'badge.research.title': 'Research workbench is active. Switch to Build and open Chat.',
+  'view.research': 'Research evidence',
+  'evidence.title': 'Evidence & artifacts',
+  'evidence.description': 'Projected directly from loaded events in this session.',
+  'evidence.readOnly': 'Read-only event ledger',
+  'evidence.loadOlder': 'Load earlier events',
+  'evidence.loadingOlder': 'Loading earlier events…',
+  'evidence.turns': 'Turns',
+  'evidence.actions': 'Tool actions',
+  'evidence.artifacts': 'Artifacts',
+  'evidence.compactions': 'Compactions',
+  'evidence.models': 'Recorded models',
+  'evidence.artifacts.empty': 'No file artifacts in the loaded events.',
+  'evidence.actions.empty': 'No tool actions in the loaded events.',
+  'evidence.models.empty': 'No model requests in the loaded events.',
+  'evidence.event': 'Event {seq}',
+  'evidence.completed': 'Completed',
+  'evidence.failed': 'Failed',
+} satisfies Record<WorkbenchKey, string>

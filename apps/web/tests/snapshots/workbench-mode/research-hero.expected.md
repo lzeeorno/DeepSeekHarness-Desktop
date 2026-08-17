@@ -1,0 +1,7 @@
+- group "工作台焦点":
+  - button "切换到代码工作台":
+    - img
+    - text: 代码
+  - button "切换到科研工作台" [pressed]:
+    - img
+    - text: 科研

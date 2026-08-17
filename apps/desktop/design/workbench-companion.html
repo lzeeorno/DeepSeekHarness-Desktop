@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DSH Workbench Companion</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0d1113;
+      --surface: #13191c;
+      --surface-2: #182125;
+      --line: #2a363a;
+      --text: #e4ecec;
+      --muted: #8b9b9f;
+      --quiet: #647276;
+      --accent: #66d9b0;
+      --accent-ink: #062319;
+      --warn: #f2c777;
+      --danger: #f29494;
+      --radius: 6px;
+      font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; background: var(--bg); color: var(--text); }
+    button { font: inherit; color: inherit; }
+    .shell { min-height: 100vh; display: grid; grid-template-rows: 58px 1fr 28px; }
+    .topbar { display: flex; align-items: center; gap: 20px; padding: 0 18px; border-bottom: 1px solid var(--line); background: #101618; }
+    .brand { display: flex; align-items: center; gap: 10px; min-width: 190px; letter-spacing: .04em; }
+    .brand-mark { width: 22px; height: 22px; display: grid; place-items: center; border: 1px solid var(--accent); border-radius: 4px; color: var(--accent); font-size: 11px; }
+    .brand-name { font-weight: 700; }
+    .crumb { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .mode-switch { margin-left: auto; display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--line); border-radius: var(--radius); background: #0a0e10; }
+    .mode-switch button, .panel-switch button { border: 0; background: transparent; padding: 6px 10px; border-radius: 4px; cursor: pointer; }
+    .mode-switch button[aria-pressed="true"], .panel-switch button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+    .status { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); white-space: nowrap; }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px #1b4337; }
+    .workspace { min-height: 0; display: grid; grid-template-columns: 255px minmax(420px, 1fr) 310px; }
+    .pane { min-width: 0; min-height: 0; background: var(--surface); }
+    .left, .center { border-right: 1px solid var(--line); }
+    .pane-head { min-height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 14px; border-bottom: 1px solid var(--line); color: var(--muted); }
+    .pane-title { color: var(--text); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+    .glyph { border: 0; background: transparent; color: var(--muted); cursor: pointer; padding: 4px; }
+    .section { padding: 14px; border-bottom: 1px solid var(--line); }
+    .section-label { margin-bottom: 9px; color: var(--quiet); font-size: 11px; text-transform: uppercase; letter-spacing: .12em; }
+    .tree-row, .session-row { display: flex; align-items: center; gap: 9px; min-height: 31px; padding: 4px 7px; border-radius: 4px; color: var(--muted); }
+    .tree-row.active, .session-row.active { color: var(--text); background: var(--surface-2); }
+    .tree-icon { width: 14px; color: var(--accent); text-align: center; }
+    .session-meta { margin-left: auto; color: var(--quiet); font-size: 11px; }
+    .center { background: #101719; overflow: hidden; }
+    .center-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+    .session-name { font-weight: 700; }
+    .session-sub { margin-top: 3px; color: var(--muted); font-size: 11px; }
+    .event-stream { display: grid; gap: 12px; padding: 18px; }
+    .event { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 11px; }
+    .event-rail { position: relative; display: flex; justify-content: center; }
+    .event-rail::after { content: ""; position: absolute; top: 14px; bottom: -16px; width: 1px; background: var(--line); }
+    .event:last-child .event-rail::after { display: none; }
+    .event-dot { z-index: 1; width: 9px; height: 9px; margin-top: 4px; border: 2px solid var(--accent); border-radius: 50%; background: var(--bg); }
+    .event-card { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); overflow: hidden; }
+    .event-card-head { display: flex; align-items: center; gap: 9px; padding: 9px 11px; border-bottom: 1px solid var(--line); }
+    .event-kind { color: var(--accent); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+    .event-time { margin-left: auto; color: var(--quiet); font-size: 11px; }
+    .event-body { padding: 12px; color: var(--muted); }
+    .event-body strong { color: var(--text); font-weight: 600; }
+    .diff { margin-top: 10px; padding: 9px; border-left: 2px solid var(--accent); background: #101d1a; color: #a6cbbd; white-space: pre-wrap; }
+    .diff .remove { color: var(--danger); }
+    .diff .add { color: var(--accent); }
+    .composer { display: grid; gap: 10px; margin: 0 18px 18px; padding: 11px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+    .composer textarea { width: 100%; min-height: 58px; resize: vertical; border: 0; outline: 0; background: transparent; color: var(--text); font: inherit; }
+    .composer-foot { display: flex; align-items: center; gap: 9px; color: var(--quiet); font-size: 11px; }
+    .composer-action { margin-left: auto; padding: 5px 10px; border: 1px solid var(--accent); border-radius: 4px; background: var(--accent); color: var(--accent-ink); cursor: pointer; }
+    .right { background: var(--surface); overflow: hidden; }
+    .context-block { padding: 14px; border-bottom: 1px solid var(--line); }
+    .meter { height: 5px; margin-top: 9px; background: #273238; border-radius: 3px; overflow: hidden; }
+    .meter > span { display: block; width: 58%; height: 100%; background: var(--accent); }
+    .context-line { display: flex; justify-content: space-between; gap: 10px; margin-top: 8px; color: var(--muted); font-size: 11px; }
+    .context-line strong { color: var(--text); font-weight: 600; }
+    .approval { display: grid; gap: 7px; padding: 10px; border: 1px solid #574c30; border-radius: var(--radius); background: #211e15; }
+    .approval-title { color: var(--warn); }
+    .approval-command { color: var(--text); overflow-wrap: anywhere; }
+    .approval-actions { display: flex; gap: 7px; }
+    .approval-actions button { flex: 1; padding: 5px 7px; border: 1px solid var(--line); border-radius: 4px; background: transparent; cursor: pointer; }
+    .approval-actions button:first-child { border-color: var(--warn); color: var(--warn); }
+    .research-only, .build-only { display: none; }
+    body[data-mode="build"] .build-only, body[data-mode="research"] .research-only { display: block; }
+    .footer { display: flex; align-items: center; gap: 16px; padding: 0 14px; border-top: 1px solid var(--line); color: var(--quiet); font-size: 11px; }
+    .footer strong { color: var(--muted); font-weight: 500; }
+    .panel-switch { display: none; }
+    @media (max-width: 900px) {
+      .shell { grid-template-rows: 58px auto auto; }
+      .topbar { gap: 10px; padding: 0 12px; }
+      .brand { min-width: auto; }
+      .crumb, .status { display: none; }
+      .mode-switch { margin-left: auto; }
+      .workspace { display: block; }
+      .pane { display: none; min-height: calc(100vh - 86px); border: 0; }
+      .center { display: block; }
+      body[data-panel="left"] .left, body[data-panel="center"] .center, body[data-panel="right"] .right { display: block; }
+      .panel-switch { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--line); border-radius: var(--radius); background: #0a0e10; }
+      .center-head { flex-wrap: wrap; }
+      .center-head .panel-switch { order: 3; width: 100%; }
+      .center-head .panel-switch button { flex: 1; }
+      .footer { min-height: 42px; padding: 6px 12px; flex-wrap: wrap; gap: 4px 12px; line-height: 1.2; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; } }
+  </style>
+</head>
+<body data-mode="build" data-panel="center">
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">DS</span><span class="brand-name">DeepSeek Harness</span></div>
+      <div class="crumb">/ research-agent / session-042</div>
+      <div class="mode-switch" aria-label="Workbench mode">
+        <button type="button" data-mode-button="build" aria-pressed="true">Build</button>
+        <button type="button" data-mode-button="research" aria-pressed="false">Research</button>
+      </div>
+      <div class="status"><span class="status-dot"></span>Loopback ready</div>
+    </header>
+    <main class="workspace">
+      <aside class="pane left" aria-label="Workspace and sessions">
+        <div class="pane-head"><span class="pane-title">Workspace</span><button class="glyph" type="button" aria-label="Add workspace">+</button></div>
+        <div class="section">
+          <div class="section-label">Project</div>
+          <div class="tree-row active"><span class="tree-icon">&gt;</span><span>deepseek-harness</span></div>
+          <div class="tree-row"><span class="tree-icon">+</span><span>packages/core</span></div>
+          <div class="tree-row"><span class="tree-icon">+</span><span>apps/desktop</span></div>
+        </div>
+        <div class="section">
+          <div class="section-label">Sessions</div>
+          <div class="session-row active"><span>session-042</span><span class="session-meta">now</span></div>
+          <div class="session-row"><span>runtime-closure</span><span class="session-meta">2h</span></div>
+          <div class="session-row"><span>paper-synthesis</span><span class="session-meta">1d</span></div>
+        </div>
+        <div class="section research-only">
+          <div class="section-label">Sources</div>
+          <div class="tree-row"><span class="tree-icon">#</span><span>AGENT_SYSTEMS_WHITEPAPER</span></div>
+          <div class="tree-row"><span class="tree-icon">#</span><span>openhands / goose</span></div>
+        </div>
+      </aside>
+      <section class="pane center" aria-label="Session event stream">
+        <div class="center-head">
+          <div><div class="session-name">Native workbench shell</div><div class="session-sub">event-sourced session / keyless replay</div></div>
+          <div class="panel-switch" aria-label="Narrow window pane"><button type="button" data-panel-button="left" aria-pressed="false">Work</button><button type="button" data-panel-button="center" aria-pressed="true">Run</button><button type="button" data-panel-button="right" aria-pressed="false">Context</button></div>
+          <button class="glyph" type="button" aria-label="Open command palette">:</button>
+        </div>
+        <div class="event-stream">
+          <article class="event build-only"><div class="event-rail"><span class="event-dot"></span></div><div class="event-card"><div class="event-card-head"><span class="event-kind">plan / step</span><span class="event-time">09:42:18</span></div><div class="event-body"><strong>Package the loopback desktop runtime</strong><br>Stage the built CLI, resolve workspace peers, then verify a keyless Electron start.</div></div></article>
+          <article class="event build-only"><div class="event-rail"><span class="event-dot"></span></div><div class="event-card"><div class="event-card-head"><span class="event-kind">tool / diff</span><span class="event-time">09:43:06</span></div><div class="event-body"><strong>apps/desktop/src/runtime.mjs</strong><div class="diff"><span class="remove">- args: [dshBinary, "web", ...]</span>
+<span class="add">+ args: ["--expose-internals", dshBinary, "web", ...]</span></div></div></div></article>
+          <article class="event build-only"><div class="event-rail"><span class="event-dot"></span></div><div class="event-card"><div class="event-card-head"><span class="event-kind">test / passed</span><span class="event-time">09:44:27</span></div><div class="event-body"><strong>Linux x64 keyless boot</strong><br>New Session, Workspaces, Settings and provider form rendered from the existing Web Client.</div></div></article>
+          <article class="event research-only"><div class="event-rail"><span class="event-dot"></span></div><div class="event-card"><div class="event-card-head"><span class="event-kind">evidence / paper</span><span class="event-time">09:42:18</span></div><div class="event-body"><strong>LongLLMLingua</strong><br>Question-aware compression is retained as a context policy input, not as a replacement for the durable event log.</div></div></article>
+          <article class="event research-only"><div class="event-rail"><span class="event-dot"></span></div><div class="event-card"><div class="event-card-head"><span class="event-kind">artifact / note</span><span class="event-time">09:44:27</span></div><div class="event-body"><strong>CCF-A implication</strong><br>Evidence, source paths and limitations remain visible beside the active research turn.</div></div></article>
+        </div>
+        <form class="composer"><textarea aria-label="Prompt" placeholder="Ask the agent to inspect, build, or synthesize..."></textarea><div class="composer-foot"><span>context 58%</span><span>model deepseek-chat</span><span class="research-only">sources 8</span><button class="composer-action" type="button">Send</button></div></form>
+      </section>
+      <aside class="pane right" aria-label="Context and approvals">
+        <div class="pane-head"><span class="pane-title">Context</span><button class="glyph" type="button" aria-label="Compact context">[]</button></div>
+        <div class="context-block"><div class="section-label">Active window</div><div class="context-line"><span>budget</span><strong>58 / 100</strong></div><div class="meter"><span></span></div><div class="context-line"><span>automatic compaction</span><strong>armed</strong></div><div class="context-line"><span>manual summary</span><strong>available</strong></div></div>
+        <div class="context-block"><div class="section-label">Model profile</div><div class="context-line"><span>provider</span><strong>DeepSeek</strong></div><div class="context-line"><span>model</span><strong>deepseek-chat</strong></div><div class="context-line"><span>credential</span><strong>reference only</strong></div></div>
+        <div class="context-block build-only"><div class="section-label">Approval queue</div><div class="approval"><div class="approval-title">Shell command needs review</div><div class="approval-command">pnpm run pack:linux</div><div class="approval-actions"><button type="button">Allow once</button><button type="button">Deny</button></div></div></div>
+        <div class="context-block research-only"><div class="section-label">Evidence tray</div><div class="context-line"><span>papers</span><strong>8 PDFs</strong></div><div class="context-line"><span>external code</span><strong>4 licensed repos</strong></div><div class="context-line"><span>open questions</span><strong>3</strong></div></div>
+      </aside>
+    </main>
+    <footer class="footer"><strong>Design companion</strong><span>Existing DSH Web Client remains the renderer.</span><span>Electron owns the window and runtime lifecycle.</span></footer>
+  </div>
+  <script>
+    const body = document.body
+    for (const button of document.querySelectorAll('[data-mode-button]')) {
+      button.addEventListener('click', () => {
+        const mode = button.dataset.modeButton
+        body.dataset.mode = mode
+        for (const item of document.querySelectorAll('[data-mode-button]')) item.setAttribute('aria-pressed', String(item === button))
+      })
+    }
+    for (const button of document.querySelectorAll('[data-panel-button]')) {
+      button.addEventListener('click', () => {
+        body.dataset.panel = button.dataset.panelButton
+        for (const item of document.querySelectorAll('[data-panel-button]')) item.setAttribute('aria-pressed', String(item === button))
+      })
+    }
+  </script>
+</body>
+</html>

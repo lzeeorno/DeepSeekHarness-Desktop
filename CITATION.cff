@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+title: DSH Desktop
+message: Please cite the community workbench and the upstream DeepSeek Harness when using this software in research.
+type: software
+authors:
+  - family-names: lzeeorno
+    given-names: lzeeorno
+    website: https://github.com/lzeeorno
+repository-code: https://github.com/lzeeorno/DeepSeekHarness-Desktop
+license: MIT
+version: 0.1.0-rc.5
+abstract: Community desktop workbench built on DeepSeek Harness for coding and research agent workflows.

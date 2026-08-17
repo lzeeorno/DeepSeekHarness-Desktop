@@ -1,0 +1,26 @@
+{
+  "name": "@deepseek-ai/dsh-desktop",
+  "description": "Community desktop workbench built on DeepSeek Harness",
+  "version": "0.1.0-rc.5",
+  "private": true,
+  "type": "module",
+  "main": "src/main.mjs",
+  "scripts": {
+    "dev": "node scripts/run-electron.mjs",
+    "start": "node scripts/run-electron.mjs",
+    "test": "pnpm --dir ../.. exec vitest run apps/desktop/tests/runtime.spec.ts",
+    "stage-runtime": "node scripts/stage-runtime.mjs",
+    "check:native": "node scripts/check-native.mjs",
+    "pack:dir": "pnpm run stage-runtime && node scripts/package.mjs --dir",
+    "pack:linux": "pnpm run stage-runtime && node scripts/package.mjs --linux",
+    "pack:mac": "pnpm run stage-runtime && node scripts/package.mjs --mac",
+    "pack:win": "pnpm run stage-runtime && node scripts/package.mjs --win",
+    "smoke:dir": "node scripts/smoke.mjs"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "43.4.0",
+    "electron-builder": "26.15.3",
+    "vitest": "^4.1.8"
+  }
+}
