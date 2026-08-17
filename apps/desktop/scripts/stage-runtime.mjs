@@ -18,7 +18,10 @@ const desktopRoot = resolve(import.meta.dirname, '..')
 const workspaceRoot = resolve(desktopRoot, '../..')
 const runtimeRoot = join(desktopRoot, '.runtime')
 const stagedModules = join(runtimeRoot, '.node-modules')
-const pnpm = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm'
+const pnpmEntrypoint = process.env.npm_execpath
+if (pnpmEntrypoint === undefined || pnpmEntrypoint === '') {
+  throw new Error('desktop: npm_execpath is unavailable; invoke staging through the pnpm package script')
+}
 
 if (existsSync(runtimeRoot)) rmSync(runtimeRoot, { recursive: true, force: true })
 mkdirSync(dirname(runtimeRoot), { recursive: true })
@@ -26,26 +29,21 @@ mkdirSync(dirname(runtimeRoot), { recursive: true })
 // deploy --prod records a production-only workspace state. Restore the full
 // source dependency graph before the next build so repeated packaging stays
 // deterministic in a non-interactive shell.
-execFileSync(pnpm, ['install', '--frozen-lockfile', '--prod=false', '--config.confirmModulesPurge=false'], {
-  cwd: workspaceRoot,
-  stdio: 'inherit',
-})
-execFileSync(pnpm, ['run', 'build'], { cwd: workspaceRoot, stdio: 'inherit' })
-execFileSync(pnpm, ['--filter', '@deepseek-ai/dsh', 'deploy', '--prod', '--legacy', runtimeRoot], {
-  cwd: workspaceRoot,
-  stdio: 'inherit',
-})
+runPnpm(['install', '--frozen-lockfile', '--prod=false', '--config.confirmModulesPurge=false'])
+runPnpm(['run', 'build'])
+runPnpm(['--filter', '@deepseek-ai/dsh', 'deploy', '--prod', '--legacy', runtimeRoot])
 
 const binary = join(runtimeRoot, 'lib', 'bin.js')
 if (!existsSync(binary)) throw new Error(`desktop: staged runtime is missing ${binary}`)
 renameSync(join(runtimeRoot, 'node_modules'), stagedModules)
 materializeMissingWorkspacePeers(stagedModules)
 materializeExternalLinks(stagedModules)
-execFileSync(pnpm, ['install', '--frozen-lockfile', '--prod=false', '--config.confirmModulesPurge=false'], {
-  cwd: workspaceRoot,
-  stdio: 'inherit',
-})
+runPnpm(['install', '--frozen-lockfile', '--prod=false', '--config.confirmModulesPurge=false'])
 console.log(`desktop: staged DSH runtime at ${runtimeRoot}`)
+
+function runPnpm(args) {
+  execFileSync(process.execPath, [pnpmEntrypoint, ...args], { cwd: workspaceRoot, stdio: 'inherit' })
+}
 
 function materializeMissingWorkspacePeers(root) {
   const peers = new Set()
