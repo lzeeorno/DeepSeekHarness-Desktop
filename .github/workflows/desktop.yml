@@ -96,7 +96,8 @@ jobs:
       - name: Generate Linux checksums
         if: matrix.target == 'linux'
         shell: bash
-        run: sha256sum dist/desktop/*.AppImage dist/desktop/*.deb > dist/desktop/SHA256SUMS
+        working-directory: dist/desktop
+        run: sha256sum *.AppImage *.deb > SHA256SUMS
 
       - name: Generate Linux SBOM
         if: matrix.target == 'linux'
