@@ -3,6 +3,21 @@ import { spawn } from 'node:child_process'
 import { once } from 'node:events'
 import { resolve } from 'node:path'
 
+const WEB_PRODUCT_NAME = 'DeepSeek Harness'
+const DESKTOP_PRODUCT_NAME = 'DSH Desktop'
+const WEB_PRODUCT_SUFFIX = ` \u2014 ${WEB_PRODUCT_NAME}`
+
+/**
+ * Translate the Web Client document title for the native desktop window.
+ * @param pageTitle - title emitted by the loaded Web Client document.
+ * @returns the desktop-branded window title.
+ */
+export function desktopWindowTitle(pageTitle) {
+  if (pageTitle === WEB_PRODUCT_NAME) return DESKTOP_PRODUCT_NAME
+  if (!pageTitle.endsWith(WEB_PRODUCT_SUFFIX)) return DESKTOP_PRODUCT_NAME
+  return `${pageTitle.slice(0, -WEB_PRODUCT_SUFFIX.length)} \u2014 ${DESKTOP_PRODUCT_NAME}`
+}
+
 /**
  * Reserve a loopback port for the child Web host.
  * @returns a currently unused TCP port on `127.0.0.1`.

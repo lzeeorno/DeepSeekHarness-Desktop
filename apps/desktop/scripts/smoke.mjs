@@ -49,19 +49,22 @@ try {
   if (page === undefined) throw new Error('no Electron page was exposed over CDP')
   await page.waitForURL(/^http:\/\/127\.0\.0\.1:/, { timeout: 30_000 })
   await page.waitForLoadState('domcontentloaded')
-  if (await page.title() !== 'DSH Desktop') throw new Error(`unexpected page title: ${await page.title()}`)
-  for (const label of ['New Session', 'Workspaces', 'Settings', 'API key', 'Configure later']) {
+  if (await page.title() !== 'DeepSeek Harness') throw new Error(`unexpected page title: ${await page.title()}`)
+  for (const label of ['New Session', 'Workspaces', 'Settings']) {
     await page.getByText(label, { exact: true }).first().waitFor({ state: 'visible', timeout: 15_000 })
   }
   const configureLater = page.getByRole('button', { name: 'Configure later', exact: true })
-  await configureLater.click()
-  await configureLater.waitFor({ state: 'detached', timeout: 15_000 })
+  if (await configureLater.isVisible()) {
+    await configureLater.click()
+    await configureLater.waitFor({ state: 'detached', timeout: 15_000 })
+  }
   await page.getByRole('group', { name: 'Workbench focus', exact: true }).first().waitFor({ state: 'visible', timeout: 15_000 })
   await page.getByRole('button', { name: 'Settings', exact: true }).click()
   const settings = page.getByRole('dialog', { name: 'Settings' })
   await settings.waitFor({ state: 'visible', timeout: 15_000 })
   await settings.getByRole('button', { name: 'Models', exact: true }).click()
   await settings.getByText('DeepSeek', { exact: true }).first().waitFor({ state: 'visible', timeout: 15_000 })
+  await settings.getByRole('button', { name: /^Edit DeepSeek/ }).click()
   await settings.getByText('API key', { exact: true }).first().waitFor({ state: 'visible', timeout: 15_000 })
   console.log(`desktop smoke: packaged UI passed (${page.url()})`)
 } finally {

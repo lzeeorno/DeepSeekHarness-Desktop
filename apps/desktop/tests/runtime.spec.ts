@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process'
 import { once } from 'node:events'
 import { resolve } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { buildDshLaunch, reserveLoopbackPort, stopDsh, waitForHttp } from '../src/runtime.mjs'
+import { buildDshLaunch, desktopWindowTitle, reserveLoopbackPort, stopDsh, waitForHttp } from '../src/runtime.mjs'
 
 const servers: ReturnType<typeof createServer>[] = []
 
@@ -12,6 +12,12 @@ afterEach(async () => {
 })
 
 describe('desktop runtime', () => {
+  it('maps Web Client titles to the desktop product name', () => {
+    expect(desktopWindowTitle('DeepSeek Harness')).toBe('DSH Desktop')
+    expect(desktopWindowTitle('Research session \u2014 DeepSeek Harness')).toBe('Research session \u2014 DSH Desktop')
+    expect(desktopWindowTitle('Loading')).toBe('DSH Desktop')
+  })
+
   it('reserves a loopback port and releases it', async () => {
     const port = await reserveLoopbackPort()
     expect(port).toBeGreaterThan(0)
