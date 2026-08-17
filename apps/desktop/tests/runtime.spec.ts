@@ -1,6 +1,7 @@
 import { createServer } from 'node:http'
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
+import { resolve } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { buildDshLaunch, reserveLoopbackPort, stopDsh, waitForHttp } from '../src/runtime.mjs'
 
@@ -28,7 +29,7 @@ describe('desktop runtime', () => {
       parentEnv: { ELECTRON_RUN_AS_NODE: '1', KEEP: 'yes' },
     })).toMatchObject({
       command: 'node',
-      args: ['--expose-internals', '/workspace/apps/cli/lib/bin.js', 'web', '--host', '127.0.0.1', '--port', '43123'],
+      args: ['--expose-internals', resolve('/workspace', 'apps/cli/lib/bin.js'), 'web', '--host', '127.0.0.1', '--port', '43123'],
       cwd: '/workspace',
       env: { RUST_LOG: 'info', KEEP: 'yes' },
     })
