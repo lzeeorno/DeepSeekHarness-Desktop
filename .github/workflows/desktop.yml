@@ -83,6 +83,24 @@ jobs:
           pnpm exec tsc -p apps/desktop/tsconfig.json --noEmit
 
       - name: Package desktop target
+        if: matrix.target != 'mac' || !startsWith(github.ref, 'refs/tags/desktop-v')
+        run: pnpm --filter @deepseek-ai/dsh-desktop pack:${{ matrix.target }}
+
+      - name: Package macOS release target
+        if: matrix.target == 'mac' && startsWith(github.ref, 'refs/tags/desktop-v')
+        env:
+          # Release tags may opt into signing; PRs and branch builds never receive
+          # these values. Empty secrets preserve the unsigned preview path.
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          CSC_NAME: ${{ secrets.CSC_NAME }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_KEYCHAIN_PROFILE: ${{ secrets.APPLE_KEYCHAIN_PROFILE }}
         run: pnpm --filter @deepseek-ai/dsh-desktop pack:${{ matrix.target }}
 
       - name: Check native addon
