@@ -82,6 +82,7 @@ await build({
     ],
     linux: {
       category: 'Development',
+      executableName: 'dsh-desktop',
       maintainer: 'lzeeorno <43123195+lzeeorno@users.noreply.github.com>',
       target: ['appimage', 'deb'],
       syncDesktopName: true,

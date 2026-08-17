@@ -4,6 +4,7 @@
   "description": "Community desktop workbench built on DeepSeek Harness",
   "version": "0.1.0-rc.5",
   "homepage": "https://github.com/lzeeorno/DeepSeekHarness-Desktop",
+  "desktopName": "dsh-desktop",
   "author": {
     "name": "lzeeorno",
     "email": "43123195+lzeeorno@users.noreply.github.com"
